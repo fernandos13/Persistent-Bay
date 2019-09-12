@@ -287,3 +287,59 @@
 			if(A)
 				to_chat(G, "Golem rune created in [A.name].")
 
+/obj/item/weapon/spaceproofpot
+	name = "spaceproof potiton"
+	desc = "A potent chemical mix that will make you spaceproof for a while."
+	icon = 'icons/obj/chemical.dmi'
+	icon_state = "bottle16"
+
+	attack(mob/living/carbon/M as mob, mob/user as mob)
+		var/cooldown_time_target = 0
+		var/protection = 0
+		var/breather = 0
+		var/time = GLOB.time
+		cooldown_time_target = time + 120 SECONDS
+
+			while (time <= cooldown_time_target)
+
+			var/obj/item/clothing/C  //lets deal with pressure
+			if (!(C.item_flags & ITEM_FLAG_STOPPRESSUREDAMAGE) )
+				protection = 1
+				C.item_flags  = ITEM_FLAG_STOPPRESSUREDAMAGE
+			else 
+				protection = 0
+			
+			//now temperature
+			if(M.bodytemperature > 310)
+				M.bodytemperature = max(310, M.bodytemperature - (40 * TEMPERATURE_DAMAGE_COEFFICIENT))
+			else if(M.bodytemperature < 311)
+				M.bodytemperature = min(310, M.bodytemperature + (40 * TEMPERATURE_DAMAGE_COEFFICIENT))
+			
+			// and air of course
+			if ( (/mob/living/carbon/human/need_breathe()) == 0)
+				breather = 1
+				user.mutations.Add(MUTATION_MNOBREATH)
+			else
+				breather = 0
+		
+		(time >= cooldown_time_target)
+			if (protection == 1)
+				C.item_flags = -ITEM_FLAG_STOPPRESSUREDAMAGE
+				protection = 0
+
+			if (breather == 1)
+				user.mutations.Remove(MUTATION_MNOBREATH)
+				breather = 0
+
+				var/needs_update = M.mutations.len > 0
+				M.disabilities = 0
+				M.sdisabilities = 0
+
+				if(needs_update && ishuman(M))
+					M.dna.ResetUI()
+					M.dna.ResetSE()
+					domutcheck(M, null, MUTCHK_FORCED)
+
+
+		to_chat(user, "apply the gel over the skin.")
+		qdel(src)
